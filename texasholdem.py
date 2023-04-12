@@ -47,6 +47,22 @@ class StateMachine(Enum):
     DRAW_THREE_CARDS = 2
     ASK_ACTION = 3
     START_GAME = 4
+    END_GAME = 5
+
+    def next(self):
+
+        if self == StateMachine.START_GAME:
+            return StateMachine.DRAW_TWO_CARDS
+        elif self == StateMachine.DRAW_CARD:
+            return StateMachine.DRAW_TWO_CARDS
+        elif self == StateMachine.DRAW_TWO_CARDS:
+            return StateMachine.DRAW_THREE_CARDS
+        elif self == StateMachine.DRAW_THREE_CARDS:
+            return StateMachine.ASK_ACTION
+        elif self == StateMachine.ASK_ACTION:
+            return StateMachine.DRAW_CARD
+        else:  # self == StateMachine.END_GAME:
+            return StateMachine.START_GAME
 
 
 def get_two_cards():
