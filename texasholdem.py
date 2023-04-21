@@ -110,6 +110,9 @@ class TexasHoldemEnv(Env):
         player_big_blind = self.active_players[(self.dealer_id + 2) % len(self.active_players)]
 
         self.players[player_big_blind].is_big_blind = True
+        
+    def _set_dealder(self):
+        pass
 
     def step(self, action):
         if self.game_state == Phase.PREFLOP:
