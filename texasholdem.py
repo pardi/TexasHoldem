@@ -1,6 +1,6 @@
 from gym import Env, spaces
 from enum import Enum
-from deckcard import Card, Seed, covert_to_human_readable, random_card
+from deckcard import Deck, covert_to_human_readable
 import random
 
 
@@ -65,14 +65,6 @@ class StateMachine(Enum):
             return StateMachine.START_GAME
 
 
-def get_two_cards():
-    return random_card(number_of_cards=2)
-
-
-def get_one_cards():
-    return random_card(number_of_cards=1)
-
-
 class TexasHoldemEnv(Env):
     def __init__(self, number_of_players: int = 5, initial_stack: float = 1000, small_blind: float = 10):
 
@@ -90,9 +82,12 @@ class TexasHoldemEnv(Env):
         self.game_state = StateMachine.START_GAME
         self.stake = None
 
+        self.deck = Deck()
+
         # Set the dealer
         self.dealer_id = random.choice(self.active_players)
         self.players[self.dealer_id].is_dealer = True
+        self.players_active = self._get_active_players()
 
         self._set_small_blind()
 
@@ -110,21 +105,16 @@ class TexasHoldemEnv(Env):
         player_big_blind = self.active_players[(self.dealer_id + 2) % len(self.active_players)]
 
         self.players[player_big_blind].is_big_blind = True
-        
-    def _set_dealder(self):
-        dealer = self.active_players[(self.dealer_id + 1) % len(self.active_players)]
-        self.players[dealer].is_dealer = True
-        #TODO: reset previous dealer         
 
     def step(self, action):
         if self.game_state == Phase.PREFLOP:
-            self.__table[Phase.FLOP] = [get_one_cards() for _ in range(3)]
+            self.__table[Phase.FLOP] = self.deck.draw_random(3)
             self.game_state = Phase.FLOP
         elif self.game_state == Phase.FLOP:
-            self.__table[Phase.TURN] = get_one_cards()
+            self.__table[Phase.TURN] = self.deck.draw_random()
             self.game_state = Phase.TURN
         elif self.game_state == Phase.TURN:
-            self.__table[Phase.RIVER] = get_one_cards()
+            self.__table[Phase.RIVER] = self.deck.draw_random()
             self.game_state = Phase.SHOWDOWN
         # self.game_state == Phase.SHOWDOWN:
         # DO NOTHING
@@ -146,6 +136,8 @@ class TexasHoldemEnv(Env):
         self.dealer_id = (self.dealer_id + 1) % len(self.players)
 
         self._deal_new_cards()
+
+        self.deck.reset()
 
         # # Set the stake
         # self.stake = 0
@@ -177,7 +169,7 @@ class TexasHoldemEnv(Env):
         self._set_big_blind()
 
         for player in self.players:
-            player.cards = get_two_cards()
+            player.cards = self.deck.draw_random(2)
 
     def __str__(self) -> str:
         if self.__table[Phase.FLOP]:
@@ -202,11 +194,9 @@ class TexasHoldemEnv(Env):
         # TODO: used for testing
 
     def random_state(self):
-        self.__table[Phase.FLOP] = [random_card(),
-                                    random_card(),
-                                    random_card()]
-        self.__table[Phase.TURN] = random_card()
-        self.__table[Phase.RIVER] = random_card()
+        self.__table[Phase.FLOP] = self.deck.draw_random(3)
+        self.__table[Phase.TURN] = self.deck.draw_random()
+        self.__table[Phase.RIVER] = self.deck.draw_random()
 
     def render(self, mode='human', close=False):
         pass
