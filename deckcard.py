@@ -29,19 +29,40 @@ class Card:
     def __eq__(self, other):
         return self.seed == other.seed and self.value == other.value
 
+    def __hash__(self):
+        return hash((self.seed, self.value))
 
-def random_card(number_of_cards: int = 1) -> Union[Card, list]:
 
-    cards = list()
+class Deck:
+    def __init__(self):
+        self.deck = dict()
+        self.max_value = 13
+        self.reset()
 
-    for idx in range(number_of_cards):
-        card = Card(random.choice(list(Seed)), 1)
-        card.value = random.randint(1, card.max_value)
-        cards.append(card)
+    def reset(self):
+        for seed in Seed:
+            for value in range(1, self.max_value + 1):
+                self.deck[Card(seed, value)] = True
 
-    if cards.__len__() == 1:
-        return cards[0]
-    return cards
+    def draw_random(self, number_of_cards: int = 1) -> Union[Card, List]:
+
+        cards = list()
+        idx = 0
+
+        while idx < number_of_cards:
+
+            seed = random.choice(list(Seed))
+            value = random.randint(1, self.max_value)
+
+            if self.deck[Card(seed, value)]:
+                card = Card(seed, value)
+                cards.append(card)
+                idx += 1
+                self.deck[Card(seed, value)] = False
+
+        if cards.__len__() == 1:
+            return cards[0]
+        return cards
 
 
 def covert_to_human_readable(card: Card) -> str:
