@@ -171,6 +171,10 @@ class TexasHoldemEnv(Env):
         for player in self.players:
             player.cards = self.deck.draw_random(2)
 
+    def _set_dealer(self):
+        dealer = self.active_players[(self.dealer_id + 1) % len(self.active_players)]
+        self.players[dealer].is_dealer = True
+
     def __str__(self) -> str:
         if self.__table[Phase.FLOP]:
             print(f"{self.__table[Phase.FLOP][0]} "
