@@ -27,6 +27,7 @@ class Player:
         self.is_big_blind = False
 
 
+
 class Action(Enum):
     FOLD = 0
     CALL = 1
@@ -130,7 +131,7 @@ class TexasHoldemEnv(Env):
 
         # Player reset
         for player_id, player in enumerate(self.players):
-            self.players[player_id].reset()
+            self.players[player_id].cards = []
 
         # New dealer
         self.dealer_id = (self.dealer_id + 1) % len(self.players)
