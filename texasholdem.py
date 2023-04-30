@@ -67,11 +67,10 @@ class StateMachine(Enum):
 
 
 class TexasHoldemEnv(Env):
-    def __init__(self, number_of_players: int = 5, initial_stack: float = 1000, small_blind: float = 10):
+    def __init__(self, number_of_players: int = 5, initial_stack: float = 1000, small_blind: float = 10, max_steps: int = 1000):
 
         self.initial_stack = initial_stack
-        self.players_id = [idx for idx in range(number_of_players)]
-        self.players = [Player(player_id, initial_stack) for player_id in self.players_id]
+        self.players = [Player(player_id, initial_stack) for player_id in range(number_of_players)]
         self.small_blind = small_blind
         self.big_blind = small_blind * 2.0
 
@@ -82,6 +81,8 @@ class TexasHoldemEnv(Env):
         self.__table = {Phase.FLOP: None, Phase.TURN: None, Phase.RIVER: None}
         self.game_state = StateMachine.START_GAME
         self.stake = None
+
+        self.max_steps = max_steps
 
         self.deck = Deck()
 
@@ -94,18 +95,32 @@ class TexasHoldemEnv(Env):
 
         self.reset()
 
-    def _get_active_players(self):
+    def _get_active_players(self) -> list:
         return [idx for idx, player in enumerate(self.players) if player.is_active]
 
-    def _set_small_blind(self) -> None:
-        player_small_blind = self.active_players[(self.dealer_id + 1) % len(self.active_players)]
+    def __get_next_active_player_id(self, current_player) -> int:
+        next_player = (current_player + 1) % len(self.active_players)
+        max_loop = len(self.players)
+        idx_loop = 0
+        while not self.players[next_player].is_dealer and idx_loop < max_loop:
+            idx_loop += 1
+            next_player += 1
 
-        self.players[player_small_blind].is_small_blind = True
+        return next_player
+
+    def _set_dealer(self) -> None:
+        next_dealer = self.__get_next_active_player_id(self.dealer_id + 1)
+
+        self.players[next_dealer].is_dealer = True
+        self.dealer_id = next_dealer
+
+    def _set_small_blind(self) -> None:
+        next_small_blind = self.__get_next_active_player_id(self.dealer_id + 1)
+        self.players[next_small_blind].is_small_blind = True
 
     def _set_big_blind(self) -> None:
-        player_big_blind = self.active_players[(self.dealer_id + 2) % len(self.active_players)]
-
-        self.players[player_big_blind].is_big_blind = True
+        next_big_blind = self.__get_next_active_player_id(self.dealer_id + 1)
+        self.players[next_big_blind].is_big_blind = True
 
     def step(self, action):
         if self.game_state == Phase.PREFLOP:
@@ -140,24 +155,24 @@ class TexasHoldemEnv(Env):
 
         self.deck.reset()
 
-        # # Set the stake
-        # self.stake = 0
-        #
-        # if self.players[self.dealer_id + 1].stack < self.small_blind:
-        #     self.stake += self.players[self.dealer_id + 1].stack
-        #
-        #     self.players[self.dealer_id + 1].is_all_in = True
-        #     self.players[self.dealer_id + 1].stack = 0
-        # else:
-        #     self.stake += self.small_blind
-        #
-        # if self.players[self.dealer_id + 2].stack < self.big_blind:
-        #     self.stake += self.players[self.dealer_id + 2].stack
-        #
-        #     self.players[self.dealer_id + 2].is_all_in = True
-        #     self.players[self.dealer_id + 2].stack = 0
-        # else:
-        #     self.stake += self.big_blind
+        # Set the stake
+        self.stake = 0
+
+        if self.players[self.dealer_id + 1].stack < self.small_blind:
+            self.stake += self.players[self.dealer_id + 1].stack
+
+            self.players[self.dealer_id + 1].is_all_in = True
+            self.players[self.dealer_id + 1].stack = 0
+        else:
+            self.stake += self.small_blind
+
+        if self.players[self.dealer_id + 2].stack < self.big_blind:
+            self.stake += self.players[self.dealer_id + 2].stack
+
+            self.players[self.dealer_id + 2].is_all_in = True
+            self.players[self.dealer_id + 2].stack = 0
+        else:
+            self.stake += self.big_blind
 
         # Set the active players
         for player in self.players:
@@ -171,10 +186,6 @@ class TexasHoldemEnv(Env):
 
         for player in self.players:
             player.cards = self.deck.draw_random(2)
-
-    def _set_dealer(self):
-        dealer = self.active_players[(self.dealer_id + 1) % len(self.active_players)]
-        self.players[dealer].is_dealer = True
 
     def __str__(self) -> str:
         if self.__table[Phase.FLOP]:
