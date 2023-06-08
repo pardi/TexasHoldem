@@ -151,6 +151,12 @@ class TexasHoldemEnv(Env):
         next_big_blind = self.__get_next_active_player_id(self.dealer_id + 1)
         self.players[next_big_blind].is_big_blind = True
 
+    def _check_action(self, action) -> None:
+        """Check if the action is valid."""
+
+        if action not in self.action_space:
+            raise ValueError("Action not available")
+       
     def step(self, action):
         """Execute action and return next state of the game."""
         if self.game_state == Phase.PREFLOP:
